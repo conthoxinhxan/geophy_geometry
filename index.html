@@ -6,10 +6,6 @@
     <title>Unity Web Player | GEOPHY</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico" />
     <link rel="stylesheet" href="TemplateData/style.css" />
-    <style>
-      /* (tuỳ chọn) Ẩn warning khi rỗng */
-      #unity-warning:empty { display:none; }
-    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -33,15 +29,21 @@
 
       function unityShowBanner(msg, type) {
         const warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? "block" : "none";
+        }
         const div = document.createElement("div");
         div.innerHTML = msg;
-        div.style.padding = "10px";
-        if (type === "error") div.style.background = "red";
-        if (type === "warning") {
-          div.style.background = "yellow";
-          setTimeout(() => div.remove(), 5000);
-        }
         warningBanner.appendChild(div);
+        if (type === "error") div.style = "background: red; padding: 10px;";
+        else {
+          if (type === "warning") div.style = "background: yellow; padding: 10px;";
+          setTimeout(() => {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
       }
 
       const buildUrl = "Build";
@@ -58,12 +60,12 @@
         showBanner: unityShowBanner
       };
 
-      // Mobile vs Desktop sizing
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         const meta = document.createElement("meta");
         meta.name = "viewport";
-        meta.content = "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
-        document.head.appendChild(meta);
+        meta.content =
+          "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.getElementsByTagName("head")[0].appendChild(meta);
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
       } else {
@@ -78,17 +80,28 @@
       script.src = loaderUrl;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = (100 * progress) + "%";
+          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
         })
           .then((unityInstance) => {
             document.querySelector("#unity-loading-bar").style.display = "none";
-            document.querySelector("#unity-fullscreen-button").onclick = () => unityInstance.SetFullscreen(1);
+            document.querySelector("#unity-fullscreen-button").onclick = () => {
+              unityInstance.SetFullscreen(1);
+            };
 
-            // expose instance ra window
+            // >>> Quan trọng: expose instance ra window
             window.unityInstance = unityInstance;
 
-            // (tuỳ chọn) báo parent là đã sẵn sàng
-            try { window.parent?.postMessage({ type: "UNITY_READY" }, "*"); } catch {}
+            // Báo ngay cho parent (React) là engine + instance đã sẵn sàng
+            try {
+              window.parent?.postMessage({ type: "UNITY_ENGINE_LOADED" }, "*");
+            } catch (e) {
+              console.error("[WebGL] Error sending ENGINE_LOADED:", e);
+            }
+            try {
+              window.parent?.postMessage({ type: "UNITY_INSTANCE_READY" }, "*");
+            } catch (e) {
+              console.error("[WebGL] Error sending INSTANCE_READY:", e);
+            }
           })
           .catch((message) => {
             alert(message);
@@ -97,47 +110,91 @@
       document.body.appendChild(script);
     </script>
 
-    <!-- ===== Bridge WebGL <-> Parent (postMessage -> SendMessage) ===== -->
-    <script>
-      // Hàng đợi nếu message đến trước khi unityInstance sẵn sàng
-      const _pending = [];
+<script>
+  console.log("[WebGL] page origin =", location.origin, "path =", location.pathname);
 
-      function _canSend() {
-        return !!(window.unityInstance && typeof window.unityInstance.SendMessage === "function");
+  // Hàng đợi payload nếu unityInstance chưa sẵn sàng
+  const _pending = [];
+
+  function _canSend() {
+    return !!(window.unityInstance && typeof window.unityInstance.SendMessage === "function");
+  }
+
+  // Chỉ nhận "payload" thuần, có thể là object/string; stringify trước khi đẩy vào C#
+  function _forwardToCSharp(payload) {
+    try {
+      const fullMessage = typeof payload === "string" ? payload : JSON.stringify(payload);
+      window.unityInstance.SendMessage("GameManager", "ReceiveSimulationJson", fullMessage);
+      console.log("[WebGL] Forwarded to C#: GameManager.ReceiveSimulationJson");
+      // (Tuỳ chọn) báo ACK cho parent
+      try {
+        window.parent?.postMessage({ type: "SIMULATION_ACK" }, "*");
+      } catch {}
+      return true;
+    } catch (err) {
+      console.error("[WebGL] SendMessage error:", err);
+      return false;
+    }
+  }
+
+  // Nhận message từ parent
+  window.addEventListener("message", (e) => {
+    // Nếu cần chặt chẽ hơn, có thể kiểm tra e.origin tại đây
+    console.log("[WebGL] GOT message from", e.origin, e.data);
+
+    // Handshake test
+    if (e.data?.type === "PING") {
+      try {
+        window.parent?.postMessage({ type: "PONG" }, "*");
+      } catch {}
+      return;
+    }
+
+    // Chuẩn hoá payload:
+    // - Hỗ trợ cả gói cũ: { type: "SIMULATION_DATA", payload: ... }
+    // - Và gói mới từ React: { data: ... }
+    let payload = null;
+    if (e.data?.type === "SIMULATION_DATA") {
+      payload = (typeof e.data.payload !== "undefined") ? e.data.payload : e.data.data;
+    } else if (e.data && Object.prototype.hasOwnProperty.call(e.data, "data")) {
+      payload = e.data.data;
+    }
+
+    // Nếu không có payload hợp lệ thì bỏ qua
+    if (payload == null) return;
+
+    // Log kích thước payload để debug
+    try {
+      const jsonStr = (typeof payload === "string") ? payload : JSON.stringify(payload);
+      console.log("[WebGL] SIMULATION payload bytes =", new Blob([jsonStr]).size);
+    } catch {}
+
+    if (!_canSend()) {
+      console.warn("[WebGL] unityInstance not ready yet -> queue payload");
+      _pending.push(payload);
+      return;
+    }
+    _forwardToCSharp(payload);
+  });
+
+  // Thông báo listener sẵn sàng (để React có thể PING/PONG)
+  try {
+    window.parent?.postMessage({ type: "UNITY_LISTENER_READY" }, "*");
+  } catch {
+    console.error("[WebGL] Error sending UNITY_LISTENER_READY");
+  }
+
+  // Khi instance sẵn sàng muộn thì flush hàng đợi
+  const _checkAndFlush = setInterval(() => {
+    if (_canSend()) {
+      clearInterval(_checkAndFlush);
+      console.log("[WebGL] unityInstance READY (late) -> flush", _pending.length, "queued payload(s)");
+      while (_pending.length) {
+        const p = _pending.shift();
+        _forwardToCSharp(p);
       }
-
-      // Chuyển NGUYÊN XI dữ liệu nhận được sang C#
-      function _forwardToCSharp(raw) {
-        try {
-          const json = (typeof raw === "string") ? raw : JSON.stringify(raw);
-          // GỌI ĐÚNG TÊN OBJECT & METHOD C# CỦA ANH
-          window.unityInstance.SendMessage("GameManager", "ReceiveSimulationJson", json);
-          console.log("[WebGL] -> C#: GameManager.ReceiveSimulationJson (len=", json.length, ")");
-          return true;
-        } catch (err) {
-          console.error("[WebGL] SendMessage error:", err);
-          return false;
-        }
-      }
-
-      // Lắng nghe mọi postMessage từ parent và forward nguyên xi
-      window.addEventListener("message", (e) => {
-        const data = e.data; // KHÔNG thêm type/payload, không sửa đổi
-        if (!_canSend()) {
-          _pending.push(data);
-          return;
-        }
-        _forwardToCSharp(data);
-      });
-
-      // Khi unityInstance sẵn sàng thì flush hàng đợi
-      const _checkAndFlush = setInterval(() => {
-        if (_canSend()) {
-          clearInterval(_checkAndFlush);
-          if (_pending.length) console.log("[WebGL] Flush queued:", _pending.length);
-          while (_pending.length) _forwardToCSharp(_pending.shift());
-        }
-      }, 200);
-    </script>
+    }
+  }, 250);
+</script>
   </body>
 </html>
