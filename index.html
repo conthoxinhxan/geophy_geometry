@@ -175,8 +175,24 @@
 
       // Lắng nghe message từ parent (React)
       window.addEventListener("message", (e) => {
+        // Cho phép localhost và GitHub Pages
+        const allowedOrigins = [
+          'http://localhost:3000',
+          'http://localhost:5173', 
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:5173',
+          'https://your-react-app.github.io', // Thay bằng domain React thực tế
+          'https://localhost:3000' // HTTPS localhost nếu có
+        ];
+        
+        // Kiểm tra origin hợp lệ
+        if (e.origin && !allowedOrigins.some(origin => e.origin.startsWith(origin.split(':').slice(0,2).join(':')))) {
+          console.warn("[WebGL] Blocked message from unauthorized origin:", e.origin);
+          return;
+        }
+        
         // Chỉ xử lý message từ parent (không phải từ các frame khác, nếu có)
-        if (e.source !== window.parent) {
+        if (e.source !== window.parent && e.source !== window.top) {
           return;
         }
 
