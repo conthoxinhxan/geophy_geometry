@@ -1,135 +1,148 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Unity Web Player | GEOPHY</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico" />
-    <link rel="stylesheet" href="TemplateData/style.css" />
-  </head>
-  <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width="1016" height="563" tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
-        </div>
-      </div>
-      <div id="unity-warning"></div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">GEOPHY</div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Unity Web Player | GEOPHY</title>
+  <link rel="shortcut icon" href="TemplateData/favicon.ico" />
+  <link rel="stylesheet" href="TemplateData/style.css" />
+</head>
+
+<body>
+  <div id="unity-container" class="unity-desktop">
+    <canvas id="unity-canvas" width="1016" height="563" tabindex="-1"></canvas>
+    <div id="unity-loading-bar">
+      <div id="unity-logo"></div>
+      <div id="unity-progress-bar-empty">
+        <div id="unity-progress-bar-full"></div>
       </div>
     </div>
+    <div id="unity-warning"></div>
+    <div id="unity-footer">
+      <div id="unity-logo-title-footer"></div>
+      <div id="unity-fullscreen-button"></div>
+      <div id="unity-build-title">GEOPHY</div>
+    </div>
+  </div>
 
-    <script>
-      const canvas = document.querySelector("#unity-canvas");
+  <script>
+    const canvas = document.querySelector("#unity-canvas");
 
-      function unityShowBanner(msg, type) {
-        const warningBanner = document.querySelector("#unity-warning");
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? "block" : "none";
-        }
-        const div = document.createElement("div");
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type === "error") div.style = "background: red; padding: 10px;";
-        else {
-          if (type === "warning") div.style = "background: yellow; padding: 10px;";
-          setTimeout(() => {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
+    function unityShowBanner(msg, type) {
+      const warningBanner = document.querySelector("#unity-warning");
+      function updateBannerVisibility() {
+        warningBanner.style.display = warningBanner.children.length ? "block" : "none";
       }
-
-      const buildUrl = "Build";
-      const loaderUrl = buildUrl + "/GeometryBuild.loader.js";
-      const config = {
-        arguments: [],
-        dataUrl: buildUrl + "/GeometryBuild.data",
-        frameworkUrl: buildUrl + "/GeometryBuild.framework.js",
-        codeUrl: buildUrl + "/GeometryBuild.wasm",
-        streamingAssetsUrl: "StreamingAssets",
-        companyName: "DefaultCompany",
-        productName: "GEOPHY",
-        productVersion: "0.1.0",
-        showBanner: unityShowBanner
-      };
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        const meta = document.createElement("meta");
-        meta.name = "viewport";
-        meta.content =
-          "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
-        document.getElementsByTagName("head")[0].appendChild(meta);
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-      } else {
-        canvas.style.width = "900px";
-        canvas.style.height = "450px";
+      const div = document.createElement("div");
+      div.innerHTML = msg;
+      warningBanner.appendChild(div);
+      if (type === "error") div.style = "background: red; padding: 10px;";
+      else {
+        if (type === "warning") div.style = "background: yellow; padding: 10px;";
+        setTimeout(() => {
+          warningBanner.removeChild(div);
+          updateBannerVisibility();
+        }, 5000);
       }
+      updateBannerVisibility();
+    }
 
-      document.querySelector("#unity-loading-bar").style.display = "block";
+    const buildUrl = "Build";
+    const loaderUrl = buildUrl + "/GeometryBuild.loader.js";
+    const config = {
+      arguments: [],
+      dataUrl: buildUrl + "/GeometryBuild.data",
+      frameworkUrl: buildUrl + "/GeometryBuild.framework.js",
+      codeUrl: buildUrl + "/GeometryBuild.wasm",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: "DefaultCompany",
+      productName: "GEOPHY",
+      productVersion: "0.1.0",
+      showBanner: unityShowBanner
+    };
 
-      // ===== Loader =====
-      const script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      const meta = document.createElement("meta");
+      meta.name = "viewport";
+      meta.content =
+        "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+      document.getElementsByTagName("head")[0].appendChild(meta);
+      document.querySelector("#unity-container").className = "unity-mobile";
+      canvas.className = "unity-mobile";
+    } else {
+      canvas.style.width = "900px";
+      canvas.style.height = "450px";
+    }
+
+    document.querySelector("#unity-loading-bar").style.display = "block";
+
+    // ===== Loader =====
+    const script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = () => {
+      createUnityInstance(canvas, config, (progress) => {
+        document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+      })
+        .then((unityInstance) => {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+          document.querySelector("#unity-fullscreen-button").onclick = () => {
+            unityInstance.SetFullscreen(1);
+          };
+
+          // Expose instance
+          window.unityInstance = unityInstance;
+
+          // Báo cho parent
+          try { window.parent?.postMessage({ type: "UNITY_ENGINE_LOADED" }, "*"); } catch (e) { }
+          try { window.parent?.postMessage({ type: "UNITY_INSTANCE_READY" }, "*"); } catch (e) { }
         })
-          .then((unityInstance) => {
-            document.querySelector("#unity-loading-bar").style.display = "none";
-            document.querySelector("#unity-fullscreen-button").onclick = () => {
-              unityInstance.SetFullscreen(1);
-            };
+        .catch((message) => {
+          alert(message);
+        });
+    };
+    document.body.appendChild(script);
+  </script>
+  <script>
+    // ===== Bridge: NHẬN JSON THUẦN từ parent và đẩy vào C# =====
+    // Lưu ý: Chỉ chấp nhận "plain object" (không array/primitive), không wrapper data/payload/type
+    //        Ví dụ hợp lệ: { shape_type: "prism", vertices:[...], edges:[...], faces:[...] }
 
-            // >>> Quan trọng: expose instance ra window
-            window.unityInstance = unityInstance;
+    // --- cấu hình tuỳ chọn để siết bảo mật origin ---
+    // const ALLOWED_ORIGIN = "http://127.0.0.1:5173"; // Sửa đúng origin FE của bạn
+    // -------------------------------------------------
 
-            // Báo ngay cho parent (React) là engine + instance đã sẵn sàng
-            try {
-              window.parent?.postMessage({ type: "UNITY_ENGINE_LOADED" }, "*");
-            } catch (e) {
-              console.error("[WebGL] Error sending ENGINE_LOADED:", e);
-            }
-            try {
-              window.parent?.postMessage({ type: "UNITY_INSTANCE_READY" }, "*");
-            } catch (e) {
-              console.error("[WebGL] Error sending INSTANCE_READY:", e);
-            }
-          })
-          .catch((message) => {
-            alert(message);
-          });
-      };
-      document.body.appendChild(script);
-    </script>
+    // Hàng đợi khi Unity chưa sẵn sàng
+    const _pending = [];
 
-<script>
-  console.log("[WebGL] page origin =", location.origin, "path =", location.pathname);
+    function _canSend() {
+      return !!(window.unityInstance && typeof window.unityInstance.SendMessage === "function");
+    }
 
-  // Hàng đợi payload nếu unityInstance chưa sẵn sàng
-  const _pending = [];
+    function isPlainObject(x) {
+      if (x === null || typeof x !== "object") return false;
+      if (Array.isArray(x)) return false;
+      if (Object.prototype.toString.call(x) !== "[object Object]") return false;
+      // Không nhận các wrapper phổ biến
+      if ("data" in x || "payload" in x || "type" in x) return false;
+      return true;
+    }
 
-  function _canSend() {
-    return !!(window.unityInstance && typeof window.unityInstance.SendMessage === "function");
-  }
-
-  // Chỉ nhận "payload" thuần, có thể là object/string; stringify trước khi đẩy vào C#
-  function _forwardToCSharp(payload) {
+    function forwardToCSharp(payload) {
     try {
-      const fullMessage = typeof payload === "string" ? payload : JSON.stringify(payload);
+      // ✅ Luôn ép về JSON string (Unity chỉ nhận string)
+      const fullMessage = JSON.stringify(payload);
+
+      // Gọi GameObject "GameManager" với method "ReceiveSimulationJson"
       window.unityInstance.SendMessage("GameManager", "ReceiveSimulationJson", fullMessage);
-      console.log("[WebGL] Forwarded to C#: GameManager.ReceiveSimulationJson");
-      // (Tuỳ chọn) báo ACK cho parent
+
+      console.log("[WebGL] Forwarded pure JSON to C#: GameManager.ReceiveSimulationJson", fullMessage);
+
+      // (Tuỳ chọn) báo ACK về parent
       try {
         window.parent?.postMessage({ type: "SIMULATION_ACK" }, "*");
       } catch {}
+
       return true;
     } catch (err) {
       console.error("[WebGL] SendMessage error:", err);
@@ -137,64 +150,60 @@
     }
   }
 
-  // Nhận message từ parent
-  window.addEventListener("message", (e) => {
-    // Nếu cần chặt chẽ hơn, có thể kiểm tra e.origin tại đây
-    console.log("[WebGL] GOT message from", e.origin, e.data);
+    // Lắng nghe message từ parent (React)
+    window.addEventListener("message", (e) => {
+      // (khuyến nghị) nếu muốn siết origin:
+      // if (e.origin !== ALLOWED_ORIGIN) { return; }
 
-    // Handshake test
-    if (e.data?.type === "PING") {
-      try {
-        window.parent?.postMessage({ type: "PONG" }, "*");
-      } catch {}
-      return;
-    }
-
-    // Chuẩn hoá payload:
-    // - Hỗ trợ cả gói cũ: { type: "SIMULATION_DATA", payload: ... }
-    // - Và gói mới từ React: { data: ... }
-    let payload = null;
-    if (e.data?.type === "SIMULATION_DATA") {
-      payload = (typeof e.data.payload !== "undefined") ? e.data.payload : e.data.data;
-    } else if (e.data && Object.prototype.hasOwnProperty.call(e.data, "data")) {
-      payload = e.data.data;
-    }
-
-    // Nếu không có payload hợp lệ thì bỏ qua
-    if (payload == null) return;
-
-    // Log kích thước payload để debug
-    try {
-      const jsonStr = (typeof payload === "string") ? payload : JSON.stringify(payload);
-      console.log("[WebGL] SIMULATION payload bytes =", new Blob([jsonStr]).size);
-    } catch {}
-
-    if (!_canSend()) {
-      console.warn("[WebGL] unityInstance not ready yet -> queue payload");
-      _pending.push(payload);
-      return;
-    }
-    _forwardToCSharp(payload);
-  });
-
-  // Thông báo listener sẵn sàng (để React có thể PING/PONG)
-  try {
-    window.parent?.postMessage({ type: "UNITY_LISTENER_READY" }, "*");
-  } catch {
-    console.error("[WebGL] Error sending UNITY_LISTENER_READY");
-  }
-
-  // Khi instance sẵn sàng muộn thì flush hàng đợi
-  const _checkAndFlush = setInterval(() => {
-    if (_canSend()) {
-      clearInterval(_checkAndFlush);
-      console.log("[WebGL] unityInstance READY (late) -> flush", _pending.length, "queued payload(s)");
-      while (_pending.length) {
-        const p = _pending.shift();
-        _forwardToCSharp(p);
+      // Chỉ xử lý message từ parent (không phải từ các frame khác, nếu có)
+      if (e.source !== window.parent) {
+        // console.warn("[WebGL] Ignored message not from parent");
+        return;
       }
-    }
-  }, 250);
-</script>
-  </body>
+
+      const msg = e.data;
+
+      // Bỏ qua handshake wrapper (nếu FE có gửi)
+      if (msg && typeof msg === "object" && msg.type === "PING") {
+        try { window.parent?.postMessage({ type: "PONG" }, "*"); } catch { }
+        return;
+      }
+
+      // ✅ Chỉ nhận JSON thuần (plain object), không wrapper
+      if (!isPlainObject(msg)) {
+        // Uncomment để debug vì sao bị bỏ qua:
+        // console.warn("[WebGL] Ignored payload (must be plain object w/o data/payload/type):", msg);
+        return;
+      }
+
+      // Log kích thước cho debug
+      try {
+        const s = JSON.stringify(msg);
+        console.log("[WebGL] GOT pure JSON from", e.origin, e.data, "bytes =", new Blob([s]).size);
+      } catch { }
+
+      if (!_canSend()) {
+        console.warn("[WebGL] unityInstance not ready -> queue payload");
+        _pending.push(msg);
+        return;
+      }
+      console.log(msg);
+      forwardToCSharp(msg);
+    });
+
+    // Thông báo listener sẵn sàng (để FE có thể chờ trước khi gửi)
+    try { window.parent?.postMessage({ type: "UNITY_LISTENER_READY" }, "*"); } catch { }
+
+    // Đợi Unity sẵn sàng rồi flush queue
+    const _flushTimer = setInterval(() => {
+      if (_canSend()) {
+        clearInterval(_flushTimer);
+        console.log("[WebGL] unityInstance READY -> flush", _pending.length, "queued payload(s)");
+        while (_pending.length) forwardToCSharp(_pending.shift());
+      }
+    }, 250);
+  </script>
+
+</body>
+
 </html>
